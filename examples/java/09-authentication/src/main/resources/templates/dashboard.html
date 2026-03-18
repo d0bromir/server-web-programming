@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Табло</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary px-3">
+    <span class="navbar-brand">Табло</span>
+    <div>
+        <span class="text-light me-3">
+            Здравей, <strong sec:authentication="name"></strong>
+        </span>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button class="btn btn-outline-light btn-sm">Изход</button>
+        </form>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="alert alert-success">
+        Успешно влязохте в системата!
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Информация за сесията</h5>
+            <p><strong>Имейл:</strong> <span sec:authentication="name"></span></p>
+            <p><strong>Роли:</strong>
+                <span th:each="r : ${roles}" class="badge bg-secondary me-1" th:text="${r}"></span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Показва се само за ADMIN -->
+    <div sec:authorize="hasRole('ADMIN')" class="card border-warning mb-3">
+        <div class="card-body">
+            <h5 class="text-warning">Администраторска зона</h5>
+            <p>Имате администраторски достъп.</p>
+            <a th:href="@{/admin/panel}" class="btn btn-warning">Отиди към Admin панел</a>
+        </div>
+    </div>
+
+    <a th:href="@{/}" class="btn btn-secondary">Начало</a>
+</div>
+</body>
+</html>

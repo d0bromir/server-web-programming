@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">MVC</title>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+<!-- Навигация -->
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="/">MVC Demo</a>
+        <a class="nav-link text-white" href="/items">Заведения</a>
+    </div>
+</nav>
+
+<div class="container">
+    <h1 class="mb-3" th:text="${title}">Начало</h1>
+    <p>В базата има <strong th:text="${count}">0</strong> заведения.</p>
+    <a href="/items" class="btn btn-primary">Виж всички</a>
+    <a href="/items?category=cafe" class="btn btn-outline-secondary ms-2">Само кафета</a>
+</div>
+
+</body>
+</html>

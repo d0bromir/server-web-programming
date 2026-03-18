@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>CSRF Демо</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-4">
+    <h3>CSRF – Cross-Site Request Forgery</h3>
+
+    <div class="alert alert-info">
+        Spring Security добавя CSRF токен автоматично когато използвате
+        <code>th:action</code>. Формата по-долу е защитена.
+        Заявка без валиден токен ще получи <strong>403 Forbidden</strong>.
+    </div>
+
+    <!-- th:action автоматично добавя hidden _csrf поле -->
+    <form th:action="@{/csrf-demo}" method="post" class="mb-4" style="max-width:400px">
+        <div class="mb-3">
+            <label class="form-label">Данни</label>
+            <input type="text" name="data" class="form-control" placeholder="Въведете нещо">
+        </div>
+        <button class="btn btn-primary">Изпрати (с CSRF токен)</button>
+    </form>
+
+    <div th:if="${received}" class="alert alert-success">
+        Получено: <strong th:text="${received}"></strong>
+    </div>
+
+    <pre class="bg-light p-3 border rounded"><code>
+&lt;!-- Thymeleaf автоматично добавя: --&gt;
+&lt;input type="hidden" name="_csrf" value="...токен..."/&gt;
+
+// В Spring Security 6 CSRF е включена по подразбиране.
+// Изключване само за REST API:
+http.csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"));
+    </code></pre>
+
+    <a href="/" class="btn btn-secondary">Назад</a>
+</div>
+</body>
+</html>
