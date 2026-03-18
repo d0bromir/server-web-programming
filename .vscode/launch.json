@@ -1,0 +1,140 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // ── Дебъгване на текущия PHP файл (CLI) ────────────────────────
+        // Отвори index.php → F5 → изпълнява се файлът и спира на breakpoints
+        {
+            "name": "PHP: Debug Current File",
+            "type": "php",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "${fileDirname}",
+            "port": 9003,
+            "runtimeExecutable": "php",
+            "externalConsole": false
+        },
+
+        // ── Вграден PHP уеб сървър + дебъгер ───────────────────────────
+        // Стартира php -S localhost:8000 в директорията на текущия файл
+        // и чака Xdebug connection при всяка заявка
+        {
+            "name": "PHP: Built-in Web Server (current folder)",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": [
+                "-S", "localhost:8000",
+                "-t", "${fileDirname}"
+            ],
+            "port": 9003,
+            "serverReadyAction": {
+                "pattern": "Development Server \\(http://localhost:8000\\) started",
+                "uriFormat": "http://localhost:8000",
+                "action": "openExternally"
+            }
+        },
+
+        // ── Слушане за Xdebug connection ────────────────────────────────
+        // Стартирай сървъра ръчно (php -S localhost:8000),
+        // после "Listen for Xdebug" → отвори страницата в браузъра
+        {
+            "name": "PHP: Listen for Xdebug",
+            "type": "php",
+            "request": "launch",
+            "port": 9003,
+            "pathMappings": {
+                "${workspaceFolder}": "${workspaceFolder}"
+            }
+        },
+
+        // ── Конкретни примери (01-11) ───────────────────────────────────
+        {
+            "name": "PHP: 01-introduction",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8001", "-t", "${workspaceFolder}/examples/php/01-introduction"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 02-http",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8002", "-t", "${workspaceFolder}/examples/php/02-http"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 03-mvc",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8003", "-t", "${workspaceFolder}/examples/php/03-mvc"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 04-frameworks",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8004", "-t", "${workspaceFolder}/examples/php/04-frameworks"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 05-routing",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8005", "-t", "${workspaceFolder}/examples/php/05-routing"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 06-database",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8006", "-t", "${workspaceFolder}/examples/php/06-database"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 07-crud",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8007", "-t", "${workspaceFolder}/examples/php/07-crud"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 08-sessions",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8008", "-t", "${workspaceFolder}/examples/php/08-sessions"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 09-authentication",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8009", "-t", "${workspaceFolder}/examples/php/09-authentication"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 10-rest-api",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8010", "-t", "${workspaceFolder}/examples/php/10-rest-api"],
+            "port": 9003
+        },
+        {
+            "name": "PHP: 11-security",
+            "type": "php",
+            "request": "launch",
+            "runtimeExecutable": "php",
+            "runtimeArgs": ["-S", "localhost:8011", "-t", "${workspaceFolder}/examples/php/11-security"],
+            "port": 9003
+        }
+    ]
+}
