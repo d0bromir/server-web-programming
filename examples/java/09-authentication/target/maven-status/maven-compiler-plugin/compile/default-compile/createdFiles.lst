@@ -1,0 +1,6 @@
+com\swp\authentication\RegisterForm.class
+com\swp\authentication\AppUser.class
+com\swp\authentication\Application.class
+com\swp\authentication\AuthController.class
+com\swp\authentication\AppUserRepository.class
+com\swp\authentication\SecurityConfig.class

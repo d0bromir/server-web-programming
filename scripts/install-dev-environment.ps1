@@ -5,7 +5,7 @@
 # Инсталира:
 #   • Git
 #   • PHP 8.x + Composer
-#   • Java 21 JDK (Eclipse Temurin LTS) + Maven
+#   • Java 25 JDK (Eclipse Temurin) + Maven
 #   • PostgreSQL 16 + pgAdmin 4
 #   • Visual Studio Code + разширения за PHP, Java, Spring Boot, SQL
 #   • IntelliJ IDEA Community Edition
@@ -308,15 +308,21 @@ if (Test-Command "composer") {
     }
 }
 
-# ── 5. Java 21 JDK (Eclipse Temurin LTS) ────────────────────────────────────
+# ── 5. Java 25 JDK (Eclipse Temurin) ───────────────────────────────────────
 
-Write-Header "Java 21 JDK (Eclipse Temurin LTS)"
+Write-Header "Java 25 JDK (Eclipse Temurin)"
 if (Test-Command "java") {
     # java -version prints to stderr; capture with cmd /c to get clean stdout string
     $javaVer = (cmd /c "java -version 2>&1" 2>$null | Select-Object -First 1)
-    Write-Skip "Java ($javaVer)"
+    if ($javaVer -match '\b25\b') {
+        Write-Skip "Java ($javaVer)"
+    } else {
+        Write-Step "Открита е различна версия ($javaVer) – инсталиране на Java 25 ..."
+        Install-WingetPackage -Id "EclipseAdoptium.Temurin.25.JDK" -Name "Java 25 JDK (Temurin)"
+        Refresh-Path
+    }
 } else {
-    Install-WingetPackage -Id "EclipseAdoptium.Temurin.21.JDK" -Name "Java 21 JDK (Temurin)"
+    Install-WingetPackage -Id "EclipseAdoptium.Temurin.25.JDK" -Name "Java 25 JDK (Temurin)"
     Refresh-Path
 }
 

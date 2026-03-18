@@ -20,6 +20,20 @@ import java.util.*;
  *   Множество маршрути на един метод
  *
  * Стартиране: mvn spring-boot:run → http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Всички места
+ *   curl http://localhost:8080/venues
+ *
+ *   # Търсене с query параметри
+ *   curl "http://localhost:8080/venues?search=sofia&page=0&size=2"
+ *
+ *   # Конкретно място (PathVariable)
+ *   curl http://localhost:8080/venues/1
+ *   curl http://localhost:8080/venues/99   # 404
+ *
+ *   # Wildcard маршрут
+ *   curl http://localhost:8080/api/anything/here
  */
 @SpringBootApplication
 public class Application {

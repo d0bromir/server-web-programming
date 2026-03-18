@@ -27,6 +27,21 @@ import java.util.*;
  *   @Configuration + @Bean – ръчно дефиниране на Bean
  *
  * Middleware:  OncePerRequestFilter (Filter) или HandlerInterceptor
+ *
+ * Стартиране: mvn spring-boot:run → http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница с линкове
+ *   curl http://localhost:8080/
+ *
+ *   # Поздрав с @RequestParam (DI демо)
+ *   curl "http://localhost:8080/demo/greet?name=Student"
+ *
+ *   # Meta информация за Beans
+ *   curl http://localhost:8080/demo/beans
+ *
+ *   # IoC контейнер концепции
+ *   curl http://localhost:8080/demo/container
  */
 @SpringBootApplication
 public class Application {
@@ -34,6 +49,7 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 }
+
 
 // ── Интерфейс (абстракция) ────────────────────────────────────────────
 interface GreetingService {
@@ -60,7 +76,7 @@ class AppConfig {
     public Map<String, String> appMetadata() {
         return Map.of(
             "version",   "1.0.0",
-            "framework", "Spring Boot 3.4.1"
+            "framework", "Spring Boot 4.0.0"
         );
     }
 }

@@ -13,6 +13,16 @@ declare(strict_types=1);
  * за да се разберат механизмите зад фасадата.
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница (Container + EventDispatcher демо)
+ *   curl http://localhost:8000/
+ *
+ *   # Защитен маршрут без токен → 401 Unauthorized
+ *   curl http://localhost:8000/protected
+ *
+ *   # Защитен маршрут с валиден токен → 200 OK
+ *   curl "http://localhost:8000/protected?token=secret123"
  */
 
 // ══════════════════════════════════════════════════════════════════════

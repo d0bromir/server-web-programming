@@ -3,162 +3,234 @@ package com.swp.http;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.*;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URI;
 import java.util.*;
 
 /**
- * Тема 02 – HTTP протокол в Spring Boot
+ * Тема 02 – HTTP протокол с HTML отговори
  *
  * Демонстрира:
- *   - HTTP методи: GET, POST, PUT, PATCH, DELETE
- *   - HTTP статус кодове с @ResponseStatus / ResponseEntity
- *   - Четене на заявка: @RequestHeader, @RequestParam, @PathVariable, @RequestBody
- *   - Задаване на response headers
- *   - 301 Redirect
- *   - Content negotiation (JSON)
+ *   - GET заявки: @RequestParam (query string), @PathVariable (URL сегмент)
+ *   - POST заявки и обработка на HTML форми
+ *   - PRG (Post-Redirect-Get) – предотвратява дублирано изпращане при F5
+ *   - HTTP пренасочвания: 301 Moved Permanently, 302 Found ("redirect:" префикс)
+ *   - Четене на request headers в HTML (HttpServletRequest)
+ *   - Задаване на response headers (HttpServletResponse)
+ *   - HTTP статус кодове – HTML страница с произволен статус
  *
  * http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8080/
+ *
+ *   # Търсене с query параметри
+ *   curl "http://localhost:8080/search?q=java&city=Sofia"
+ *
+ *   # Елемент по id (PathVariable)
+ *   curl http://localhost:8080/items/1
+ *   curl http://localhost:8080/items/99   # 404
+ *
+ *   # Форма за добавяне – GET
+ *   curl http://localhost:8080/add
+ *
+ *   # Добавяне – POST (PRG)
+ *   curl -X POST http://localhost:8080/add \
+ *        -d "name=TestItem&city=Sofia" -L
+ *
+ *   # Покажи request headers
+ *   curl http://localhost:8080/headers
+ *
+ *   # Permanent redirect (301)
+ *   curl -v http://localhost:8080/old-search
+ *
+ *   # Temporary redirect (302)
+ *   curl -v http://localhost:8080/temporary
+ *
+ *   # Произволен HTTP статус код
+ *   curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/status/418
  */
 @SpringBootApplication
-@RestController
 public class Application {
-
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
+}
 
-    // ── GET ──────────────────────────────────────────────────────────
+@Controller
+class HttpDemoController {
 
-    /** GET /items → списък (200 OK) */
-    @GetMapping("/items")
-    public ResponseEntity<Map<String, Object>> listItems(
-            @RequestParam(defaultValue = "1")  int page,
-            @RequestParam(defaultValue = "10") int size) {
+    private static final List<Map<String, Object>> VENUES = List.of(
+        Map.of("name", "Ресторант Централ", "city", "София"),
+        Map.of("name", "Кафе Витоша",       "city", "София"),
+        Map.of("name", "Sky Bar",            "city", "Варна"),
+        Map.of("name", "Клуб Екстрем",      "city", "Бургас")
+    );
 
-        var items = List.of(
-            Map.of("id", 1, "name", "Ресторант Централ"),
-            Map.of("id", 2, "name", "Кафе Витоша")
-        );
+    // ── Начална страница ──────────────────────────────────────────────
 
-        return ResponseEntity.ok(Map.of(
-            "data",  items,
-            "page",  page,
-            "size",  size,
-            "total", items.size()
-        ));
+    /** GET / → начална страница с линкове към всички демонстрации */
+    @GetMapping("/")
+    public String home() {
+        return "index";
     }
 
-    /** GET /items/{id} → единичен ресурс (200) или 404 */
+    // ── GET заявки ────────────────────────────────────────────────────
+
+    /**
+     * GET /search?q=текст&city=София → страница с резултати.
+     * Демонстрира @RequestParam – четене на query string параметри.
+     */
+    @GetMapping("/search")
+    public String search(
+            @RequestParam(defaultValue = "") String q,
+            @RequestParam(defaultValue = "") String city,
+            Model model) {
+        var results = VENUES.stream()
+            .filter(v ->
+                (q.isBlank()    || v.get("name").toString()
+                                    .toLowerCase().contains(q.toLowerCase()))
+             && (city.isBlank() || v.get("city").equals(city)))
+            .toList();
+        model.addAttribute("q",       q);
+        model.addAttribute("city",    city);
+        model.addAttribute("results", results);
+        return "search";
+    }
+
+    /**
+     * GET /items/{id} → детайли за заведение.
+     * Демонстрира @PathVariable – стойност, вградена в URL пътя.
+     */
     @GetMapping("/items/{id}")
-    public ResponseEntity<Map<String, Object>> getItem(@PathVariable int id) {
-        if (id <= 0 || id > 100) {
-            return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("error", "Не е намерено", "id", id));
+    public String item(@PathVariable int id, Model model,
+                       HttpServletResponse response) {
+        if (id < 1 || id > VENUES.size()) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            model.addAttribute("id", id);
+            return "not-found";
         }
-        return ResponseEntity.ok(Map.of("id", id, "name", "Заведение #" + id));
+        var venue = VENUES.get(id - 1);
+        model.addAttribute("id",   id);
+        model.addAttribute("name", venue.get("name"));
+        model.addAttribute("city", venue.get("city"));
+        return "item";
     }
 
-    // ── POST ─────────────────────────────────────────────────────────
+    // ── POST + PRG ────────────────────────────────────────────────────
 
-    /** POST /items → създаване (201 Created + Location header) */
-    @PostMapping("/items")
-    public ResponseEntity<Map<String, Object>> createItem(
-            @RequestBody Map<String, String> body) {
+    /** GET /add → форма за добавяне на заведение */
+    @GetMapping("/add")
+    public String addForm() {
+        return "add";
+    }
 
-        String name = body.getOrDefault("name", "").strip();
+    /**
+     * POST /add → обработка на HTML формата с PRG шаблон.
+     * PRG (Post-Redirect-Get): след успешен POST → redirect (302) → GET страница.
+     * Flash атрибутите се запазват само за едно пренасочване.
+     */
+    @PostMapping("/add")
+    public String addSubmit(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "") String city,
+            RedirectAttributes ra) {
         if (name.isBlank()) {
-            return ResponseEntity
-                .status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "Полето 'name' е задължително."));
+            ra.addFlashAttribute("error", "Името е задължително.");
+            return "redirect:/add";
         }
-
-        int fakeId = new Random().nextInt(1000) + 100;
-        var created = Map.<String, Object>of("id", fakeId, "name", name);
-
-        return ResponseEntity
-            .created(URI.create("/items/" + fakeId))
-            .body(created);
+        ra.addFlashAttribute("success",
+            "Заведението \u201e" + name.strip() + "\u201c (" + city + ") беше добавено.");
+        return "redirect:/";
     }
 
-    // ── PUT ──────────────────────────────────────────────────────────
+    // ── Headers ────────────────────────────────────────────────────────
 
-    /** PUT /items/{id} → пълна замяна (200) */
-    @PutMapping("/items/{id}")
-    public Map<String, Object> replaceItem(
-            @PathVariable int id,
-            @RequestBody Map<String, String> body) {
-        return Map.of("id", id, "name", body.getOrDefault("name", ""), "updated", true);
+    /**
+     * GET /headers → показва request headers в HTML.
+     * Задава custom response header (X-Demo-Header).
+     */
+    @GetMapping("/headers")
+    public String headers(HttpServletRequest request,
+                          HttpServletResponse response,
+                          Model model) {
+        Map<String, String> hdrs = new LinkedHashMap<>();
+        Collections.list(request.getHeaderNames())
+                   .forEach(h -> hdrs.put(h, request.getHeader(h)));
+        response.setHeader("X-Demo-Header", "Spring-Boot-HTTP-Example");
+        model.addAttribute("headers", hdrs);
+        return "headers";
     }
 
-    // ── PATCH ────────────────────────────────────────────────────────
+    // ── Redirects ──────────────────────────────────────────────────────
 
-    /** PATCH /items/{id} → частична промяна (200) */
-    @PatchMapping("/items/{id}")
-    public Map<String, Object> patchItem(
-            @PathVariable int id,
-            @RequestBody Map<String, Object> patches) {
-        patches.put("id", id);
-        patches.put("patched", true);
-        return patches;
-    }
-
-    // ── DELETE ───────────────────────────────────────────────────────
-
-    /** DELETE /items/{id} → 204 No Content */
-    @DeleteMapping("/items/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteItem(@PathVariable int id) {
-        // В реално приложение: itemRepository.deleteById(id);
-    }
-
-    // ── Redirect ─────────────────────────────────────────────────────
-
-    /** GET /old-items → 301 Redirect към /items */
-    @GetMapping("/old-items")
-    public ResponseEntity<Void> redirect() {
+    /**
+     * GET /old-search → 301 Moved Permanently към /search.
+     * Трайно пренасочване – браузърите и търсачките кешират 301.
+     */
+    @GetMapping("/old-search")
+    public ResponseEntity<Void> permanentRedirect() {
         return ResponseEntity
             .status(HttpStatus.MOVED_PERMANENTLY)
-            .location(URI.create("/items"))
+            .location(URI.create("/search"))
             .build();
     }
 
-    // ── Headers ──────────────────────────────────────────────────────
-
-    /** GET /headers → echoes request headers */
-    @GetMapping("/headers")
-    public ResponseEntity<Map<String, String>> echoHeaders(
-            @RequestHeader Map<String, String> headers) {
-
-        // Добавяме custom response header
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.add("X-Custom-Header", "Spring-Boot-Demo");
-        responseHeaders.add("X-Request-Count", "1");
-
-        return ResponseEntity.ok()
-            .headers(responseHeaders)
-            .body(headers);
+    /**
+     * GET /temporary → 302 Found (временно пренасочване).
+     * Spring "redirect:" префикс автоматично изпраща 302.
+     */
+    @GetMapping("/temporary")
+    public String temporaryRedirect() {
+        return "redirect:/search";
     }
 
-    // ── Status codes demo ─────────────────────────────────────────────
+    // ── Status code demo ───────────────────────────────────────────────
 
-    /** GET /status/{code} → връща зададения статус код */
+    /**
+     * GET /status/{code} → HTML страница, върната с произволен HTTP статус.
+     * Демонстрира ResponseEntity с контролиран статус и HTML съдържание.
+     */
     @GetMapping("/status/{code}")
-    public ResponseEntity<Map<String, Object>> statusDemo(@PathVariable int code) {
-        HttpStatus status;
+    public ResponseEntity<String> statusDemo(@PathVariable int code) {
+        HttpStatusCode status;
         try {
             status = HttpStatus.valueOf(code);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
-                .body(Map.of("error", "Невалиден статус код: " + code));
+                .contentType(MediaType.TEXT_HTML)
+                .body("<html><body><h1>Невалиден статус код: " + code
+                    + "</h1><a href='/'>← Начало</a></body></html>");
         }
+        String category =
+            status.is2xxSuccessful()  ? "Успех (2xx)" :
+            status.is3xxRedirection() ? "Пренасочване (3xx)" :
+            status.is4xxClientError() ? "Грешка на клиента (4xx)" :
+            status.is5xxServerError() ? "Грешка на сървъра (5xx)" :
+                                        "Информационен (1xx)";
+        String reasonPhrase = (status instanceof HttpStatus hs)
+            ? hs.getReasonPhrase() : "Непознат";
+        String html = """
+            <!DOCTYPE html>
+            <html lang="bg"><head><meta charset="UTF-8">
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+            <title>HTTP %d</title></head>
+            <body class="bg-light"><div class="container py-5">
+              <h1>HTTP %d \u2013 %s</h1>
+              <p class="lead">Категория: <strong>%s</strong></p>
+              <a href="/" class="btn btn-secondary">\u2190 Начало</a>
+            </div></body></html>
+            """.formatted(code, code, reasonPhrase, category);
         return ResponseEntity.status(status)
-            .body(Map.of(
-                "status",  code,
-                "reason",  status.getReasonPhrase(),
-                "isError", status.isError()
-            ));
+            .contentType(MediaType.TEXT_HTML)
+            .body(html);
     }
 }

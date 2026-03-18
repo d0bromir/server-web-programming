@@ -14,15 +14,40 @@ declare(strict_types=1);
  * Стартиране: php -S localhost:8000
  *
  * Тестване с curl:
+ *   # Токен за автентикация: demo-token-12345
+ *   TOKEN="demo-token-12345"
+ *
+ *   # Публичен списък (без токен)
  *   curl http://localhost:8000/api/items
- *   curl http://localhost:8000/api/items/1 \
- *        -H "Authorization: Bearer demo-token-12345"
+ *
+ *   # Единичен ресурс (без токен → 401 ако е protected)
+ *   curl http://localhost:8000/api/items/1
+ *
+ *   # Вземане с токен
+ *   curl -H "Authorization: Bearer $TOKEN" \
+ *        http://localhost:8000/api/items
+ *
+ *   # Създаване (POST)
  *   curl -X POST http://localhost:8000/api/items \
  *        -H "Content-Type: application/json" \
- *        -H "Authorization: Bearer demo-token-12345" \
- *        -d '{"name":"Нов запис","price":9.99}'
+ *        -H "Authorization: Bearer $TOKEN" \
+ *        -d '{"name":"Нов запис","category":"тест","price":9.99}'
+ *
+ *   # Пълна замяна (PUT)
+ *   curl -X PUT http://localhost:8000/api/items/1 \
+ *        -H "Content-Type: application/json" \
+ *        -H "Authorization: Bearer $TOKEN" \
+ *        -d '{"name":"Обновен запис","category":"тест","price":19.99}'
+ *
+ *   # Частична промяна (PATCH)
+ *   curl -X PATCH http://localhost:8000/api/items/1 \
+ *        -H "Content-Type: application/json" \
+ *        -H "Authorization: Bearer $TOKEN" \
+ *        -d '{"price":14.99}'
+ *
+ *   # Изтриване (DELETE)
  *   curl -X DELETE http://localhost:8000/api/items/1 \
- *        -H "Authorization: Bearer demo-token-12345"
+ *        -H "Authorization: Bearer $TOKEN"
  */
 
 // ══════════════════════════════════════════════════════════════════════

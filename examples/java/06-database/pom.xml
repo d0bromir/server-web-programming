@@ -7,13 +7,16 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.1</version>
+        <version>4.0.0</version>
         <relativePath/>
     </parent>
     <groupId>com.swp</groupId>
     <artifactId>06-database</artifactId>
     <version>1.0.0</version>
-    <properties><java.version>21</java.version></properties>
+    <properties>
+        <java.version>25</java.version>
+        <argLine>-Dfile.encoding=UTF-8</argLine>
+    </properties>
     <dependencies>
         <!-- Web -->
         <dependency>
@@ -29,7 +32,13 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Тестване -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>

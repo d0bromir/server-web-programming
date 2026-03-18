@@ -14,9 +14,9 @@
         }
     },
     "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
+        "files": [
+            "tests/CalculatorTest.php"
+        ]
     },
     "scripts": {
         "test": "phpunit --colors=always tests/"

@@ -18,6 +18,30 @@ declare(strict_types=1);
  *   POST /users         → създаване (тест с curl)
  *   GET  /admin         → защитена страница (изисква ?token=admin)
  *   GET  /about         → статична страница
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8000/
+ *
+ *   # Списък с потребители
+ *   curl http://localhost:8000/users
+ *
+ *   # Конкретен потребител
+ *   curl http://localhost:8000/users/1
+ *   curl http://localhost:8000/users/99   # 404 Not Found
+ *
+ *   # Създаване на потребител (POST)
+ *   curl -X POST http://localhost:8000/users \
+ *        -d "name=Иван&email=ivan@example.com"
+ *
+ *   # Защитена страница – без токен → 403
+ *   curl http://localhost:8000/admin
+ *
+ *   # Защитена страница – с токен → 200
+ *   curl "http://localhost:8000/admin?token=admin"
+ *
+ *   # За страница
+ *   curl http://localhost:8000/about
  */
 
 // ══════════════════════════════════════════════════════════════════════

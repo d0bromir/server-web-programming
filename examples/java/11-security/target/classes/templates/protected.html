@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Защитена страница</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-4">
+    <div class="alert alert-success">
+        Добре дошли, <strong th:text="${username}"></strong>! Тази страница изисква вход.
+    </div>
+    <p>Достъпна само за удостоверени потребители чрез:</p>
+    <pre class="bg-light p-2 border"><code>.requestMatchers("/secure/**").authenticated()</code></pre>
+    <div class="mt-3">
+        <a href="/" class="btn btn-secondary me-2">Начало</a>
+        <form th:action="@{/logout}" method="post" class="d-inline">
+            <button class="btn btn-outline-danger">Изход</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

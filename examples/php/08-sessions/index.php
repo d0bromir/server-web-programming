@@ -11,6 +11,31 @@ declare(strict_types=1);
  *  - "Запомни ме" (remember-me cookie)
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Запис на cookie jar за session cookie
+ *   COOKIEJAR=$(mktemp /tmp/cookies-XXXX.txt)
+ *
+ *   # Начална страница (без активна сесия)
+ *   curl -c "$COOKIEJAR" http://localhost:8000/
+ *
+ *   # Стартиране/актуализиране на сесия
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST "http://localhost:8000/?action=set_session" \
+ *        -d "username=Иван"
+ *
+ *   # Начална страница (с активна сесия)
+ *   curl -b "$COOKIEJAR" http://localhost:8000/
+ *
+ *   # Задаване на cookie
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST "http://localhost:8000/?action=set_cookie" \
+ *        -d "name=theme&value=dark"
+ *
+ *   # Изтриване на cookie
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST "http://localhost:8000/?action=delete_cookie" \
+ *        -d "name=theme"
  */
 
 // ── Стартираме сесията с security настройки ───────────────────────────

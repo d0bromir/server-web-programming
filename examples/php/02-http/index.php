@@ -11,6 +11,23 @@ declare(strict_types=1);
  *  - HTTP редиректи
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8000/
+ *
+ *   # HTTP статус кодове
+ *   curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/status?code=200"
+ *   curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/status?code=404"
+ *   curl -s -o /dev/null -w "%{http_code}" "http://localhost:8000/status?code=500"
+ *
+ *   # POST – echo на заявката
+ *   curl -X POST http://localhost:8000/echo-request \
+ *        -H "Content-Type: application/json" \
+ *        -d '{"key":"value","num":42}'
+ *
+ *   # Редирект (следва автоматично с -L)
+ *   curl -L -v http://localhost:8000/redirect
  */
 
 // ── Routing по URL + метод ────────────────────────────────────────────────

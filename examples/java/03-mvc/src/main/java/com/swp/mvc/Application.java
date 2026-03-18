@@ -13,6 +13,17 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *
  * Стартиране: mvn spring-boot:run
  * Порт: http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8080/
+ *
+ *   # Списък с елементи
+ *   curl http://localhost:8080/items
+ *
+ *   # Детайли за елемент
+ *   curl http://localhost:8080/items/1
+ *   curl http://localhost:8080/items/99   # 404 Not Found
  */
 @SpringBootApplication
 public class Application {

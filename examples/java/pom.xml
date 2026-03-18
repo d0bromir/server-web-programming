@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        Агрегиращ POM – само открива подмодулите, не е техен Maven parent.
+        Позволява на VS Code Java Language Server да разпознае всеки
+        подпроект и правилно да открие src/main/java като source root.
+
+        Стартиране на конкретен пример:
+          cd 04-frameworks && mvn spring-boot:run
+    -->
+    <groupId>com.swp</groupId>
+    <artifactId>java-examples</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>Сървърно уеб програмиране – Java примери</name>
+
+    <modules>
+        <module>01-introduction</module>
+        <module>02-http</module>
+        <module>03-mvc</module>
+        <module>04-frameworks</module>
+        <module>05-routing</module>
+        <module>06-database</module>
+        <module>07-crud</module>
+        <module>08-sessions</module>
+        <module>09-authentication</module>
+        <module>10-rest-api</module>
+        <module>11-security</module>
+    </modules>
+</project>

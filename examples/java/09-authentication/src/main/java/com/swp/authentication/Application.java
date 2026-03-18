@@ -36,11 +36,62 @@ import java.util.Optional;
  *   - Регистрация на нов потребител
  *   - CSRF защита (включена по подразбиране в Spring Security)
  *
+ * Как работи проверката на паролата (стъпка по стъпка):
+ *
+ *   1. Браузърът изпраща POST /login с полетата username и password.
+ *      Заявката се прихваща от Spring Security – няма @PostMapping в нашия код.
+ *
+ *   2. UsernamePasswordAuthenticationFilter (вграден филтър) извлича
+ *      username и password от заявката.
+ *
+ *   3. Извиква се UserDetailsService.loadUserByUsername(email):
+ *        - търси потребителя в базата: SELECT * FROM app_user WHERE email = ?
+ *        - връща UserDetails обект с BCrypt хеша на паролата от БД.
+ *
+ *   4. BCryptPasswordEncoder.matches(plainText, hashFromDb) сравнява паролите:
+ *        - BCrypt извлича солта от хеша, хешира въведената парола с нея
+ *          и сравнява резултата – паролата в чист текст НЕ се запазва никъде.
+ *
+ *   5. При успех – създава се сесия и потребителят се пренасочва към /dashboard.
+ *      При грешка – пренасочване към /login?error.
+ *
+ *   Формат на BCrypt хеш: $2a$12$<сол><хеш>
+ *     - 2a  = версия на алгоритъма
+ *     - 12  = cost factor (2^12 итерации = ~250ms на съвременен CPU)
+ *     - сол = 22 символа (случайна, уникална за всеки потребител)
+ *
  * Акаунти след стартиране:
  *   admin@demo.com / Admin1234
  *   user@demo.com  / User1234
  *
  * http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Запис на cookie jar за session cookie
+ *   COOKIEJAR=$(mktemp /tmp/cookies-XXXX.txt)
+ *
+ *   # Login форма – GET
+ *   curl http://localhost:8080/login
+ *
+ *   # Вход като admin (Spring Security form login – нужен е CSRF токен)
+ *   # 1. Вземете CSRF токен от login страницата:
+ *   CSRF=$(curl -s -c "$COOKIEJAR" http://localhost:8080/login | \
+ *          grep -oP 'name="_csrf".*?value="\K[^"]+')
+ *   # 2. Изпратете POST с токена:
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8080/login \
+ *        -d "username=admin%40demo.com&password=Admin1234&_csrf=$CSRF" -L
+ *
+ *   # Dashboard (изисква автентикация)
+ *   curl -b "$COOKIEJAR" http://localhost:8080/dashboard
+ *
+ *   # Admin страница (изисква роля ADMIN)
+ *   curl -b "$COOKIEJAR" http://localhost:8080/admin/panel
+ *
+ *   # Изход
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8080/logout \
+ *        -d "_csrf=$CSRF" -L
  */
 @SpringBootApplication
 public class Application {

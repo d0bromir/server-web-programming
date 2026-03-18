@@ -6,7 +6,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.domain.*;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
@@ -16,6 +15,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
+import java.net.URI;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,38 +26,51 @@ import java.util.stream.Collectors;
 /**
  * Тема 10 – REST API
  *
- * Демонстрира:
- *   - @RestController, ResponseEntity, HTTP статус кодове
- *   - Стандартен API отговор ApiResponse<T>
- *   - CRUD за ресурс Venue (съхранение в памет – без БД)
- *   - Пагинация (/api/venues?page=0&size=3)
- *   - Bearer-token автентикация чрез OncePerRequestFilter
- *   - @ExceptionHandler / @ControllerAdvice за глобална обработка на грешки
- *   - @Valid Bean Validation → 400 Bad Request
+ * Обхваща концепции от теми 01, 02 и 10:
+ *   Тема 01 – основни REST анотации (IntroController):
+ *     @RestController, @GetMapping, @RequestParam
+ *     GET /api/info, /api/hello, /api/request-info
+ *
+ *   Тема 02 – HTTP методи и статус кодове (HttpDemoController):
+ *     GET, POST, PUT, PATCH, DELETE с ResponseEntity
+ *     301 redirect, echo headers, status code demo
+ *     GET /api/http/*, /api/old-venues, /api/headers, /api/status/{code}
+ *
+ *   Тема 10 – пълен REST API (VenueController):
+ *     - Стандартен ApiResponse<T> обвивка
+ *     - CRUD + PATCH за ресурс Venue (in-memory store)
+ *     - Пагинация (/api/venues?page=0&size=3)
+ *     - Bearer-token автентикация чрез OncePerRequestFilter
+ *     - @ExceptionHandler / @ControllerAdvice
+ *     - @Valid Bean Validation → 400 Bad Request
  *
  * Тест с curl:
- *   # GET всички
+ *   # Тема 01 – базови REST endpoints
+ *   curl http://localhost:8080/api/info
+ *   curl "http://localhost:8080/api/hello?name=Student"
+ *   curl http://localhost:8080/api/request-info
+ *
+ *   # Тема 02 – HTTP методи и статус кодове
+ *   curl http://localhost:8080/api/status/404
+ *   curl http://localhost:8080/api/headers
+ *   curl -v http://localhost:8080/api/old-venues   # 301 redirect
+ *
+ *   # Тема 10 – CRUD venues
  *   curl http://localhost:8080/api/venues
- *
- *   # GET с пагинация
  *   curl "http://localhost:8080/api/venues?page=0&size=2"
- *
- *   # GET по id
  *   curl http://localhost:8080/api/venues/1
- *
- *   # POST (изисква Bearer токен)
  *   curl -X POST http://localhost:8080/api/venues \
  *        -H "Authorization: Bearer secret-token" \
  *        -H "Content-Type: application/json" \
  *        -d '{"name":"Ателие","city":"Пловдив","category":"cafe","rating":4.5}'
- *
- *   # PUT
  *   curl -X PUT http://localhost:8080/api/venues/1 \
  *        -H "Authorization: Bearer secret-token" \
  *        -H "Content-Type: application/json" \
  *        -d '{"name":"Ново Ателие","city":"Пловдив","category":"cafe","rating":4.8}'
- *
- *   # DELETE
+ *   curl -X PATCH http://localhost:8080/api/venues/1 \
+ *        -H "Authorization: Bearer secret-token" \
+ *        -H "Content-Type: application/json" \
+ *        -d '{"rating":4.9}'
  *   curl -X DELETE http://localhost:8080/api/venues/1 \
  *        -H "Authorization: Bearer secret-token"
  *
@@ -69,8 +84,97 @@ public class Application {
 }
 
 // ──────────────────────────────────────────────────────────────────────
-// СТАНДАРТЕН API ОТГОВОР
+// ТЕМА 01 – БАЗОВИ REST ENDPOINTS
 // ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Въведение в @RestController.
+ * Методите директно връщат JSON (без шаблонен двигател).
+ */
+@RestController
+class IntroController {
+
+    /** GET /api/info → JSON с информация за приложението */
+    @GetMapping("/api/info")
+    public Map<String, Object> info() {
+        return Map.of(
+            "app",       "Любими заведения",
+            "version",   "1.0.0",
+            "framework", "Spring Boot 4.0.0",
+            "java",      System.getProperty("java.version"),
+            "time",      LocalDateTime.now().toString()
+        );
+    }
+
+    /** GET /api/hello?name=Иван → { "message": "Здравей, Иван!" } */
+    @GetMapping("/api/hello")
+    public Map<String, String> hello(
+            @RequestParam(defaultValue = "свят") String name) {
+        return Map.of("message", "Здравей, " + name + "!");
+    }
+
+    /** GET /api/request-info → метод, URI, IP и User-Agent на заявката */
+    @GetMapping("/api/request-info")
+    public Map<String, String> requestInfo(HttpServletRequest request) {
+        return Map.of(
+            "method",     request.getMethod(),
+            "uri",        request.getRequestURI(),
+            "remoteAddr", request.getRemoteAddr(),
+            "userAgent",  String.valueOf(request.getHeader("User-Agent"))
+        );
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────
+// ТЕМА 02 – HTTP МЕТОДИ И СТАТУС КОДОВЕ
+// ──────────────────────────────────────────────────────────────────────
+
+/**
+ * Демонстрира HTTP концепции в REST контекст:
+ *   301 redirect, echo headers, status code demo.
+ */
+@RestController
+class HttpDemoController {
+
+    /** GET /api/old-venues → 301 Moved Permanently към /api/venues */
+    @GetMapping("/api/old-venues")
+    public ResponseEntity<Void> redirect() {
+        return ResponseEntity
+            .status(HttpStatus.MOVED_PERMANENTLY)
+            .location(URI.create("/api/venues"))
+            .build();
+    }
+
+    /** GET /api/headers → echo всички request headers като JSON */
+    @GetMapping("/api/headers")
+    public ResponseEntity<Map<String, String>> echoHeaders(
+            @RequestHeader Map<String, String> headers) {
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.add("X-Custom-Header", "Spring-Boot-REST-Demo");
+        return ResponseEntity.ok()
+            .headers(responseHeaders)
+            .body(headers);
+    }
+
+    /** GET /api/status/{code} → JSON отговор с дадения статус код */
+    @GetMapping("/api/status/{code}")
+    public ResponseEntity<Map<String, Object>> statusDemo(@PathVariable int code) {
+        HttpStatus status;
+        try {
+            status = HttpStatus.valueOf(code);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "Невалиден статус код: " + code));
+        }
+        return ResponseEntity.status(status).body(Map.of(
+            "status",  code,
+            "reason",  status.getReasonPhrase(),
+            "isError", status.isError()
+        ));
+    }
+}
+
+
 
 /** Обгръща всички отговори в { success, data, message } */
 record ApiResponse<T>(boolean success, T data, String message) {
@@ -170,6 +274,18 @@ class VenueService {
         return Optional.of(data);
     }
 
+    public Optional<Venue> patch(Long id, Map<String, Object> updates) {
+        return findById(id).map(v -> {
+            if (updates.containsKey("name"))     v.setName(updates.get("name").toString());
+            if (updates.containsKey("city"))     v.setCity(updates.get("city").toString());
+            if (updates.containsKey("category")) v.setCategory(updates.get("category").toString());
+            if (updates.containsKey("rating"))
+                v.setRating(Double.parseDouble(updates.get("rating").toString()));
+            store.put(id, v);
+            return v;
+        });
+    }
+
     public boolean delete(Long id) {
         return store.remove(id) != null;
     }
@@ -200,7 +316,8 @@ class SecurityConfig {
                 String path   = req.getRequestURI();
 
                 boolean isWriteOperation =
-                    (method.equals("POST") || method.equals("PUT") || method.equals("DELETE"))
+                    (method.equals("POST") || method.equals("PUT")
+                     || method.equals("PATCH") || method.equals("DELETE"))
                     && path.startsWith("/api/");
 
                 if (isWriteOperation) {
@@ -217,7 +334,7 @@ class SecurityConfig {
                     // Constant-time comparison prevents timing attacks
                     if (!MessageDigest.isEqual(
                             token.getBytes(), VALID_TOKEN.getBytes())) {
-                        res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                         res.setContentType("application/json;charset=UTF-8");
                         res.getWriter().write(
                             "{\"success\":false,\"data\":null," +
@@ -230,9 +347,6 @@ class SecurityConfig {
         };
     }
 }
-
-// We need java.security.MessageDigest:
-import java.security.MessageDigest;
 
 // ──────────────────────────────────────────────────────────────────────
 // CONTROLLER
@@ -307,6 +421,17 @@ class VenueController {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(ApiResponse.error("Заведение #" + id + " не е намерено."));
+    }
+
+    /** PATCH /api/venues/{id} → частична промяна (изисква Bearer токен) */
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<Venue>> patch(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+        return service.patch(id, updates)
+            .map(v -> ResponseEntity.ok(ApiResponse.ok(v, "Частично обновено.")))
+            .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error("Заведение #" + id + " не е намерено.")));
     }
 }
 

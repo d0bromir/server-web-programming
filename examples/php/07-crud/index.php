@@ -11,6 +11,25 @@ declare(strict_types=1);
  *  - Валидация на входните данни
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Списък с всички задачи
+ *   curl http://localhost:8000/
+ *
+ *   # Детайли за задача
+ *   curl http://localhost:8000/tasks/1
+ *
+ *   # Създаване на задача (POST)
+ *   curl -X POST http://localhost:8000/tasks \
+ *        -d "title=Нова+задача&status=pending&priority=normal"
+ *
+ *   # Актуализиране (method override чрез POST + hidden field)
+ *   curl -X POST "http://localhost:8000/tasks/1" \
+ *        -d "_method=PUT&title=Обновена+задача&status=done&priority=high"
+ *
+ *   # Изтриване (method override чрез POST + hidden field)
+ *   curl -X POST "http://localhost:8000/tasks/1" \
+ *        -d "_method=DELETE"
  */
 
 session_start();

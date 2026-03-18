@@ -22,6 +22,30 @@ import java.util.*;
  *   - Брояч на посещения (в сесия)
  *
  * http://localhost:8080
+ *
+ * curl заявки (ръчно тестване):
+ *   # Запис на cookie jar за session cookie
+ *   COOKIEJAR=$(mktemp /tmp/cookies-XXXX.txt)
+ *
+ *   # Начална страница (показва текущата сесия и cookie)
+ *   curl -c "$COOKIEJAR" http://localhost:8080/
+ *
+ *   # Запис на атрибут в сесията
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8080/session/set \
+ *        -d "key=username&value=Иван"
+ *
+ *   # Начална страница (сесионният атрибут се показва)
+ *   curl -b "$COOKIEJAR" http://localhost:8080/
+ *
+ *   # Задаване на cookie
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8080/cookie/set \
+ *        -d "name=theme&value=dark"
+ *
+ *   # Инвалидиране на сесията
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8080/session/invalidate -L
  */
 @SpringBootApplication
 public class Application {
@@ -40,7 +64,8 @@ class SessionDemoController {
                        @CookieValue(value = "username", defaultValue = "") String cookieUser) {
 
         // Инкрементиране на брояч в сесията
-        int visits = (int) session.getAttributeOrDefault("visitCount", 0) + 1;
+        Object attrVal = session.getAttribute("visitCount");
+        int visits = (attrVal != null ? Integer.parseInt(attrVal.toString()) : 0) + 1;
         session.setAttribute("visitCount", visits);
 
         model.addAttribute("sessionId",    session.getId());
@@ -49,6 +74,13 @@ class SessionDemoController {
         model.addAttribute("cookieUser",   cookieUser);
         model.addAttribute("creationTime", new Date(session.getCreationTime()));
         model.addAttribute("maxInactive",  session.getMaxInactiveInterval());
+
+        // Всички атрибути в сесията
+        var attrs = new LinkedHashMap<String, Object>();
+        Collections.list(session.getAttributeNames())
+            .forEach(name -> attrs.put(name, session.getAttribute(name)));
+        model.addAttribute("sessionAttrs", attrs);
+
         return "index";
     }
 

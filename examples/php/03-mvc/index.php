@@ -14,6 +14,17 @@ declare(strict_types=1);
  *   /          → HomeController::index()
  *   /items     → ItemController::index()
  *   /items/1   → ItemController::show(1)
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8000/
+ *
+ *   # Списък с елементи
+ *   curl http://localhost:8000/items
+ *
+ *   # Детайли за елемент
+ *   curl http://localhost:8000/items/1
+ *   curl http://localhost:8000/items/99  # 404 Not Found
  */
 
 // ══════════════════════════════════════════════════════════════════════

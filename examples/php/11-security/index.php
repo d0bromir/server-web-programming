@@ -12,6 +12,19 @@ declare(strict_types=1);
  *  6. Replay Attack защита (nonce / timestamp)
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница – вижте security headers в отговора
+ *   curl -I http://localhost:8000/
+ *
+ *   # Пълен отговор
+ *   curl http://localhost:8000/
+ *
+ *   # XSS опит (htmlspecialchars го неутрализира)
+ *   curl "http://localhost:8000/?name=<script>alert(1)</script>"
+ *
+ *   # SQL injection опит (prepared statement го блокира)
+ *   curl "http://localhost:8000/?search=' OR '1'='1"
  */
 
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);

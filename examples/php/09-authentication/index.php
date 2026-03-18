@@ -14,6 +14,34 @@ declare(strict_types=1);
  * Абонати по подразбиране:
  *   admin / admin123  (роля: admin)
  *   user  / user123   (роля: user)
+ *
+ * curl заявки (ръчно тестване):
+ *   # Запис на cookie jar за session cookie
+ *   COOKIEJAR=$(mktemp /tmp/cookies-XXXX.txt)
+ *
+ *   # Login form
+ *   curl http://localhost:8000/login
+ *
+ *   # Вход като admin
+ *   curl -c "$COOKIEJAR" -X POST http://localhost:8000/login \
+ *        -d "username=admin&password=admin123"
+ *
+ *   # Dashboard (изисква автентикация)
+ *   curl -b "$COOKIEJAR" http://localhost:8000/dashboard
+ *
+ *   # Admin страница (изисква роля admin)
+ *   curl -b "$COOKIEJAR" http://localhost:8000/admin
+ *
+ *   # Изход
+ *   curl -b "$COOKIEJAR" -c "$COOKIEJAR" \
+ *        -X POST http://localhost:8000/logout
+ *
+ *   # Вход като обикновен user
+ *   curl -c "$COOKIEJAR" -X POST http://localhost:8000/login \
+ *        -d "username=user&password=user123"
+ *
+ *   # Admin страница – отказан достъп (потребителят е с роля user)
+ *   curl -b "$COOKIEJAR" http://localhost:8000/admin
  */
 
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);

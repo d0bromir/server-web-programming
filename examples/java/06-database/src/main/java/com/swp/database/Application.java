@@ -3,7 +3,11 @@ package com.swp.database;
 import jakarta.persistence.*;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.*;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
@@ -25,11 +29,38 @@ import java.util.Optional;
  *
  * H2 конзола:  http://localhost:8080/h2-console
  *   JDBC URL:  jdbc:h2:mem:venues_db
+ *
+ * curl заявки (ръчно тестване):
+ *   # Всички места
+ *   curl http://localhost:8080/api/venues
+ *
+ *   # Пагинация
+ *   curl "http://localhost:8080/api/venues?page=0&size=2"
+ *
+ *   # Търсене по град
+ *   curl "http://localhost:8080/api/venues?city=Sofia"
+ *
+ *   # Конкретно място
+ *   curl http://localhost:8080/api/venues/1
+ *   curl http://localhost:8080/api/venues/999   # 404
  */
 @SpringBootApplication
 public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
+    }
+}
+
+// H2ConsoleAutoConfiguration беше премахнат в Spring Boot 4.0 – регистрираме
+// сервлета ръчно, за да работи http://localhost:8080/h2-console
+@Configuration
+class H2ConsoleConfig {
+    @Bean
+    public ServletRegistrationBean<org.h2.server.web.JakartaWebServlet> h2Console() {
+        var bean = new ServletRegistrationBean<>(new org.h2.server.web.JakartaWebServlet(), "/h2-console/*");
+        bean.setInitParameters(java.util.Map.of("webAllowOthers", "false"));
+        bean.setLoadOnStartup(1);
+        return bean;
     }
 }
 

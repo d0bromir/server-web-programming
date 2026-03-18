@@ -26,6 +26,27 @@ import java.util.List;
  *   - Thymeleaf форма с th:object, th:field, th:errors
  *
  * http://localhost:8080/venues
+ *
+ * curl заявки (ръчно тестване):
+ *   # Списък с всички места
+ *   curl http://localhost:8080/venues
+ *
+ *   # Форма за ново място – GET
+ *   curl http://localhost:8080/venues/new
+ *
+ *   # Създаване на ново място – POST (PRG → редирект към /venues)
+ *   curl -X POST http://localhost:8080/venues \
+ *        -d "name=Ново+Кафе&city=София&category=cafe&rating=4.5" -L
+ *
+ *   # Форма за редактиране – GET
+ *   curl http://localhost:8080/venues/1/edit
+ *
+ *   # Актуализиране – POST /venues/{id}
+ *   curl -X POST http://localhost:8080/venues/1 \
+ *        -d "name=Обновено+Кафе&city=София&category=cafe&rating=4.8" -L
+ *
+ *   # Изтриване – POST /venues/{id}/delete
+ *   curl -X POST http://localhost:8080/venues/1/delete -L
  */
 @SpringBootApplication
 public class Application {
@@ -60,7 +81,7 @@ class Venue {
 
     protected Venue() {}
 
-    // Getters & Setters
+    // Getters & Setters (може да се генерират автоматично с Lombok или IDE)
     public Long    getId()            { return id; }
     public String  getName()          { return name; }
     public String  getCity()          { return city; }

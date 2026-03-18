@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.swp.security.ApplicationTest
+-------------------------------------------------------------------------------
+Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 6.627 s -- in com.swp.security.ApplicationTest

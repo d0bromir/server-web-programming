@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="venues-app" />
+        <module name="01-introduction" />
+        <module name="05-routing" />
+        <module name="07-crud" />
+        <module name="06-database" />
+        <module name="testing-demo" />
+        <module name="security-demo" />
+        <module name="rest-api" />
+        <module name="09-authentication" />
+        <module name="04-frameworks" />
+        <module name="02-http" />
+        <module name="08-sessions" />
+        <module name="03-mvc" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="01-introduction" options="-parameters" />
+      <module name="02-http" options="-parameters" />
+      <module name="03-mvc" options="-parameters" />
+      <module name="04-frameworks" options="-parameters" />
+      <module name="05-routing" options="-parameters" />
+      <module name="06-database" options="-parameters" />
+      <module name="07-crud" options="-parameters" />
+      <module name="08-sessions" options="-parameters" />
+      <module name="09-authentication" options="-parameters" />
+      <module name="rest-api" options="-parameters" />
+      <module name="security-demo" options="-parameters" />
+      <module name="testing-demo" options="-parameters" />
+      <module name="venues-app" options="-parameters" />
+    </option>
+  </component>
+</project>

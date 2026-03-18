@@ -12,6 +12,22 @@ declare(strict_types=1);
  *  - Pagination query
  *
  * Стартиране: php -S localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница (първа страница книги)
+ *   curl http://localhost:8000/
+ *
+ *   # Пагинация
+ *   curl "http://localhost:8000/?page=2"
+ *
+ *   # Търсене по ключова дума
+ *   curl "http://localhost:8000/?search=Вазов"
+ *
+ *   # Филтриране по жанр
+ *   curl "http://localhost:8000/?genre=Роман"
+ *
+ *   # Демонстрация на транзакция
+ *   curl "http://localhost:8000/?tx=1"
  */
 
 // ══════════════════════════════════════════════════════════════════════

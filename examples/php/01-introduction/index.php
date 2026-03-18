@@ -10,6 +10,16 @@ declare(strict_types=1);
  *
  * Стартиране: php -S localhost:8000
  * Отворете:   http://localhost:8000
+ *
+ * curl заявки (ръчно тестване):
+ *   # Начална страница
+ *   curl http://localhost:8000/
+ *
+ *   # GET с query параметър
+ *   curl "http://localhost:8000/?name=Свят"
+ *
+ *   # POST с form данни
+ *   curl -X POST http://localhost:8000/ -d "greeting=Здравей"
  */
 
 // ── Обработка на заявката ─────────────────────────────────────────────────
