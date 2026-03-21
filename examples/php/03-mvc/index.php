@@ -37,7 +37,7 @@ class ItemModel
     private static array $items = [
         1 => ['id' => 1, 'name' => 'Кафе',     'description' => 'Еспресо кафе',       'price' => 2.50],
         2 => ['id' => 2, 'name' => 'Чай',      'description' => 'Зелен чай',          'price' => 1.80],
-        3 => ['id' => 3, 'name' => 'Сока',     'description' => 'Портокалов сок',     'price' => 3.20],
+        3 => ['id' => 3, 'name' => 'Сок',      'description' => 'Портокалов сок',     'price' => 3.20],
         4 => ['id' => 4, 'name' => 'Бира',     'description' => 'Наливна бира 500мл', 'price' => 4.00],
     ];
 
@@ -210,7 +210,7 @@ function view_items_list(array $data): void
     echo '<table><tr><th>ID</th><th>Ime</th><th>Описание</th><th>Цена</th><th></th></tr>';
     foreach ($data['items'] as $item) {
         printf(
-            '<tr><td>%d</td><td>%s</td><td>%s</td><td>%.2f лв.</td><td><a href="/items/%d">Детайли</a></td></tr>',
+            '<tr><td>%d</td><td>%s</td><td>%s</td><td>%.2f €</td><td><a href="/items/%d">Детайли</a></td></tr>',
             $item['id'],
             htmlspecialchars($item['name']),
             htmlspecialchars($item['description']),
@@ -231,7 +231,7 @@ function view_item_detail(array $data): void
     echo '<p><strong>ID:</strong> ' . $item['id'] . '</p>';
     echo '<p><strong>Название:</strong> ' . htmlspecialchars($item['name']) . '</p>';
     echo '<p><strong>Описание:</strong> ' . htmlspecialchars($item['description']) . '</p>';
-    echo '<p><strong>Цена:</strong> ' . number_format($item['price'], 2) . ' лв.</p>';
+    echo '<p><strong>Цена:</strong> ' . number_format($item['price'], 2) . ' €</p>';
     echo '</div>';
     echo '<a href="/items">← Обратно към списъка</a>';
     view_layout_end();

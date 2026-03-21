@@ -214,6 +214,19 @@ $pipeline->run($req, $res, function () use ($req, $res) {
     $res->status = 200;
 });
 
+// Изпращаме HTTP статуса и хедърите от Response обекта
+http_response_code($res->status);
+foreach ($res->headers as $name => $value) {
+    header("$name: $value");
+}
+
+// Ако pipeline-ът е спрял (напр. 401), връщаме само JSON и излизаме
+if ($res->status !== 200) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo $res->body;
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="bg">
@@ -234,9 +247,23 @@ pre{background:#f7f7f7;padding:14px;border-radius:6px;overflow-x:auto;font-size:
 
 <div class="card">
   <h2>1. Service Container <span class="label">Dependency Injection</span></h2>
-  <p>Контейнерът <strong>регистрира</strong> и <strong>resolve-ва</strong> зависимости.
-     Всеки component получава нужните му обекти вместо да ги инстанцира сам.</p>
-  <p><strong>Singleton</strong> (<code>LoggerInterface</code>) – един обект за целия request:</p>
+  <p>
+    <strong>Проблемът без DI:</strong> когато клас директно инстанцира зависимостите си
+    (<code>new FileLogger()</code> вътре в <code>UserService</code>), двата класа са
+    <em>тясно свързани</em> – невъзможно е да смените имплементацията без да редактирате
+    всяко място на употреба.
+  </p>
+  <p>
+    <strong>Решението – Service Container:</strong> зависимостите се <em>регистрират</em>
+    веднъж в контейнера и се <em>инжектират</em> автоматично. Класовете зависят от
+    <code>LoggerInterface</code> (абстракция), не от <code>FileLogger</code> (конкретен тип).
+    За тестове можете да подадете <code>NullLogger</code> без да пипате бизнес логиката.
+  </p>
+  <ul>
+    <li><code>bind()</code> – нова инстанция при всяко <code>make()</code></li>
+    <li><code>singleton()</code> – една и съща инстанция за целия request (споделено състояние)</li>
+  </ul>
+  <p><strong>Резултат от демото</strong> (singleton logger споделен между двата извиквания):</p>
   <pre><?php
   echo "Регистрирани creations:\n";
   echo "  FileLogger (singleton): " . get_class($logger) . "\n";
@@ -253,10 +280,21 @@ pre{background:#f7f7f7;padding:14px;border-radius:6px;overflow-x:auto;font-size:
 
 <div class="card">
   <h2>2. Middleware Pipeline <span class="label">Before / After Hooks</span></h2>
-  <p>Всеки middleware обработва заявката <em>преди</em> и/или <em>след</em> следващия.
-     Може да <strong>спре pipeline-а</strong> (напр. при 401 Unauthorized).</p>
+  <p>
+    Middleware pipeline-ът е редица от функции, наредени като <strong>лук (onion model)</strong>:
+    всяка обвива следващата. Заявката преминава <em>навътре</em> (before), достига до
+    финалния handler (контролера), след което отговорът се връща <em>навън</em> (after).
+  </p>
+  <p>В примера middlewareите se изпълняват в следния ред:</p>
+  <ol>
+    <li><code>loggingMiddleware</code> – логва метода и пътя <em>преди</em> и статуса <em>след</em></li>
+    <li><code>timingMiddleware</code> – измерва времето за изпълнение и го добавя в хедъра <code>X-Response-Time</code></li>
+    <li><code>authMiddleware</code> – проверява токен; при грешен <strong>спира pipeline-а</strong> и връща <code>401</code> без да достига до контролера</li>
+  </ol>
+  <p>Може да <strong>спре pipeline-а</strong> (напр. при 401 Unauthorized) – просто не извиква <code>$next()</code>.</p>
   <p>Пробвайте: <a href="/?token=secret123">?token=secret123</a> &nbsp;|&nbsp;
      <a href="/protected?token=secret123">/protected?token=secret123</a> &nbsp;|&nbsp;
+     <a href="/protected?token=wrong">/protected?token=wrong (грешен → 401)</a> &nbsp;|&nbsp;
      <a href="/protected">/protected (без токен → 401)</a></p>
   <pre><?php
   echo "Status:  {$res->status}\n";
@@ -270,6 +308,12 @@ pre{background:#f7f7f7;padding:14px;border-radius:6px;overflow-x:auto;font-size:
 
 <div class="card">
   <h2>3. Популярни PHP Framework-ове</h2>
+  <p>
+    Реалните фреймуъркове предоставят горните концепции (и много повече) като готови компоненти:
+    <strong>routing</strong>, <strong>ORM</strong>, <strong>шаблонизатор</strong>,
+    <strong>валидация</strong>, <strong>CLI инструменти</strong> и <strong>тестови помощници</strong>.
+    Изборът между тях зависи от мащаба на проекта и нуждите на екипа.
+  </p>
   <table style="width:100%;border-collapse:collapse">
     <tr><th style="text-align:left;padding:8px;border:1px solid #ddd">Framework</th>
         <th style="text-align:left;padding:8px;border:1px solid #ddd">Тип</th>
