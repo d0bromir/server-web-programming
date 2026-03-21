@@ -36,6 +36,23 @@ session_start();
 
 // ══════════════════════════════════════════════════════════════════════
 //  СЛОЙ 1: DATABASE
+//
+//  PDO (PHP Data Objects) е единен интерфейс за работа с бази данни.
+//  Един и същ код работи с SQLite, MySQL, PostgreSQL – сменя се само DSN-ът.
+//
+//  DSN (Data Source Name) формат:
+//    sqlite:/path/to/file.sqlite    – файлова БД, без сървър
+//    mysql:host=…;dbname=…          – MySQL / MariaDB
+//    pgsql:host=…;dbname=…          – PostgreSQL
+//
+//  Singleton патерн: PDO обектът се създава ВЕДНЪЖ и се преизползва.
+//  Всяка нова конекция е скъпа операция – избягваме я с static свойство.
+//
+//  Важни PDO опции:
+//    ATTR_ERRMODE  = ERRMODE_EXCEPTION  → хвърля изключение при SQL грешка
+//                                         (вместо тихо да върне false)
+//    ATTR_DEFAULT_FETCH_MODE = FETCH_ASSOC → редовете са асоциативни масиви
+//                                           ['id'=>1, 'title'=>'...'] вместо [0=>1, ...]
 // ══════════════════════════════════════════════════════════════════════
 
 class Database
@@ -66,6 +83,30 @@ class Database
 
 // ══════════════════════════════════════════════════════════════════════
 //  СЛОЙ 2: REPOSITORY  (само DB операции, без бизнес логика)
+//
+//  CRUD = Create, Read, Update, Delete – четирите основни операции
+//  върху данни. Съответстват на SQL командите:
+//
+//    Create → INSERT INTO tasks (title, …) VALUES (?, …)
+//    Read   → SELECT * FROM tasks [WHERE …]
+//    Update → UPDATE tasks SET title = ? WHERE id = ?
+//    Delete → DELETE FROM tasks WHERE id = ?
+//
+//  и на HTTP методите:
+//
+//    Create → POST   /tasks
+//    Read   → GET    /tasks       (списък)
+//             GET    /tasks/:id   (един запис)
+//    Update → PUT    /tasks/:id
+//    Delete → DELETE /tasks/:id
+//
+//  Браузърните форми поддържат само GET и POST. За PUT и DELETE
+//  използваме "method override": скрито поле  _method=PUT / _method=DELETE
+//  изпратено чрез POST → контролерът чете $_POST['_method'] и го третира
+//  като реалния HTTP метод.
+//
+//  Repository изолира SQL от бизнес логиката. Ако смените SQLite с MySQL,
+//  редактирате само тук – Service и Controller остават непроменени.
 // ══════════════════════════════════════════════════════════════════════
 
 class TaskRepository
@@ -176,6 +217,25 @@ class TaskService
 
 // ══════════════════════════════════════════════════════════════════════
 //  FLASH MESSAGES
+//
+//  Flash message = съобщение, което се показва ВЕДНЪЖ след пренасочване.
+//
+//  Проблемът:
+//    1. Потребителят изпраща POST (създаване/изтриване/редактиране).
+//    2. Контролерът обработва заявката и иска да покаже "Успех!".
+//    3. Ако само echo-нем съобщението преди redirect, то изчезва.
+//    4. Ако не направим redirect, F5 ще повтори POST заявката!
+//
+//  Решение – Post/Redirect/Get (PRG) патерн с flash:
+//    POST /tasks  →  записваме в $_SESSION['flash']  →  redirect GET /
+//    GET  /        →  четем и изтриваме $_SESSION['flash']  →  показваме
+//
+//  Функцията flash() работи в два режима:
+//    flash('Текст', 'ok')  → записва в сесията (без върнат резултат)
+//    flash()               → чете от сесията, ИЗТРИВА го и го връща
+//                           (следващото извикване ще върне null)
+//
+//  Типове: 'ok' (зелен) | 'err' (червен) – CSS класовете са в <style>.
 // ══════════════════════════════════════════════════════════════════════
 
 function flash(string $msg = '', string $type = 'ok'): ?array

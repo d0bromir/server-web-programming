@@ -788,7 +788,42 @@ if ($psqlCmd) {
     Write-Warn "psql не е намерен. Базата данни ще трябва да се създаде ръчно след рестарт."
 }
 
-# ── 13. Финален отчет ─────────────────────────────────────────────────────────
+# ── 13. composer install за всички PHP примери ───────────────────────────────
+
+Write-Header "composer install за PHP примери"
+
+Refresh-Path
+if (Test-Command "composer") {
+    $scriptDir   = Split-Path $MyInvocation.MyCommand.Path -Parent
+    $examplesDir = Join-Path (Split-Path $scriptDir -Parent) "examples\php"
+
+    if (Test-Path $examplesDir) {
+        $composerFiles = Get-ChildItem -Path $examplesDir -Filter "composer.json" -Recurse -Depth 2
+        foreach ($file in $composerFiles) {
+            $dir = $file.DirectoryName
+            Write-Step "composer install в $dir ..."
+            Push-Location $dir
+            try {
+                composer install --no-interaction --quiet 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-OK "$($file.Directory.Name): зависимостите са инсталирани."
+                } else {
+                    Write-Warn "$($file.Directory.Name): composer install върна код $LASTEXITCODE."
+                }
+            } catch {
+                Write-Warn "$($file.Directory.Name): $_"
+            } finally {
+                Pop-Location
+            }
+        }
+    } else {
+        Write-Warn "Директорията $examplesDir не е намерена – пропускам."
+    }
+} else {
+    Write-Warn "composer не е намерен в PATH – пропускам. Изпълнете 'composer install' ръчно в examples/php/<номер>/"
+}
+
+# ── 14. Финален отчет ─────────────────────────────────────────────────────────
 
 Write-Header "Инсталацията е завършена"
 

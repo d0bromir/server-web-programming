@@ -75,12 +75,12 @@ match ($action) {
         $value    = htmlspecialchars(trim($_POST['cvalue'] ?? 'демо'), ENT_QUOTES, 'UTF-8');
         $expires  = (int) ($_POST['expires'] ?? 3600);
         setcookie(
-            name:     'demo_cookie',
-            value:    $value,
-            expires:  $expires > 0 ? time() + $expires : 0,
-            path:     '/',
-            secure:   false,   // true в production
-            httponly: true,    // не е достъпна от JavaScript
+            name:             'demo_cookie',
+            value:            $value,
+            expires_or_options: $expires > 0 ? time() + $expires : 0,
+            path:             '/',
+            secure:           false,   // true в production
+            httponly:         true,    // не е достъпна от JavaScript
         );
         // Favorites biscuit - обикновена cookie
         setcookie('theme', 'dark', time() + 86400 * 30, '/');  // 30 дни

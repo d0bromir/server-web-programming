@@ -49,6 +49,32 @@ session_start();
 
 // ══════════════════════════════════════════════════════════════════════
 //  "БАЗА ДАННИ" (in-memory за простота)
+//
+//  ХЕШИРАНЕ НА ПАРОЛИ
+//  ─────────────────────
+//  Никога не съхранявайте пароли в plaintext! Ако БД бъде изтече,
+//  атакуващият ще получи директно всички пароли.
+//
+//  password_hash($plaintext, PASSWORD_DEFAULT)
+//    – PHP избира алгоритъма автоматично (днес = bcrypt)
+//    – Всеки път връща РАЗЛИЧЕН hash (включва случаен salt)
+//    – Формат: $2y$10$<22-символа salt><31-символа hash>
+//    – пример: '$2y$10$abcdefghijklmnopqrstuuXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+//
+//  password_verify($input, $hash)
+//    – Извлича salt-а от hash-а, хешира input-а и сравнява
+//    – Използва сравнение в постоянно време (timing-safe) за защита
+//      срещу timing attacks
+//
+//  В реален проект:
+//    CREATE TABLE users (id INTEGER PK, username TEXT UNIQUE NOT NULL,
+//                        password_hash TEXT NOT NULL, role TEXT NOT NULL);
+//    -- При регистрация:
+//    INSERT INTO users (username, password_hash, role)
+//    VALUES (?, password_hash(?), 'user');
+//    -- При login:
+//    $row = SELECT * FROM users WHERE username = ?;
+//    if (password_verify($input, $row['password_hash'])) { ... }
 // ══════════════════════════════════════════════════════════════════════
 
 // В реален проект: PDO + users таблица
@@ -72,6 +98,42 @@ $users = [
 
 // ══════════════════════════════════════════════════════════════════════
 //  AUTH HELPERS
+//
+//  SESSION-BASED АВТЕНТИКАЦИЯ
+//  ─────────────────────────
+//  Когато потребителят влезе успешно, PHP:
+//    1. Създава сесия (file на сървъра или Redis/Memcached)
+//    2. Изпраща session ID чрез Set-Cookie: PHPSESSID=<hash>; HttpOnly
+//    3. Браузърът връща PHPSESSID при всяка последваща заявка
+//    4. PHP зарежда $_SESSION от файла по session ID
+//
+//  session_regenerate_id(true) – ВАЖНО! Пренамерва session ID след login,
+//  за да предотврати Session Fixation атака:
+//    атакуващият знае session ID (напр. от URL) преди вход
+//    → след входа има автентицирана сесия със знаетия session ID
+//    → решение: след проверка = смяна на ID (старият се изтрива)
+//
+//  session_set_cookie_params(['httponly'=>true, 'samesite'=>'Lax'])
+//    httponly: бразърът блокира JavaScript достъпа до cookie
+//              → защита срещу XSS
+//    samesite: браузърът не изпраща cookie при cross-site заявки
+//              → защита срещу CSRF
+//
+//  РОЛИ (АВТОРИЗАЦИЯ)
+//  ─────────────────
+//  Автентикация = потвърждаване на самоличността ("кой си?")
+//  Авторизация  = проверка на права ("имаш ли право?")
+//
+//  requireAuth()     – пренасочва към /login ако няма активна сесия
+//  requireRole('x')  – ако ролята не съвпада → 403 Forbidden
+//
+//  intended_url: запазваме URL-а, към който потребителят искаше да
+//  отиде, за да го пренасочим там след успешен login.
+//
+//  ГРЕШКО СЪОБЩЕНИЕ = фиксирано:
+//  "Грешно потребителско или парола." – не (зло) кой от двата
+//  е грешен, защото това би помогнало на атакуващ да
+//  прецени дали username-ът съществува.
 // ══════════════════════════════════════════════════════════════════════
 
 function isLoggedIn(): bool

@@ -66,6 +66,43 @@ class H2ConsoleConfig {
 
 // ──────────────────────────────────────────────────────────────────────
 // ENTITY (Model)
+//
+// Как Java клас се обвързва с таблица и колони:
+//
+//  @Entity          – казва на JPA: "този клас е persistent" и трябва да
+//                     има съответна таблица в базата данни.
+//
+//  @Table(name="…") – ако липсва, JPA ползва името на класа ("Venue").
+//                     Тук изрично задаваме "venue" (главни/малки букви
+//                     нямат значение при H2/SQLite).
+//
+//  @Id              – задължително поле; картира се към PRIMARY KEY колоната.
+//
+//  @GeneratedValue(strategy = IDENTITY)
+//                   – стойността се генерира от базата данни (AUTO_INCREMENT /
+//                     SERIAL / IDENTITY в зависимост от DB).
+//
+//  @Column(...)     – опционален; ако липсва, JPA картира полето към колона
+//                     с СЪЩОТО ИМЕ (camelCase → snake_case по подразбиране):
+//
+//       Java поле        DB колона
+//       ──────────────   ──────────────
+//       id               id
+//       name             name
+//       city             city
+//       category         category
+//       description      description
+//       rating           rating
+//
+//  @Column атрибути:
+//       nullable = false  →  NOT NULL ограничение
+//       length = 200      →  VARCHAR(200)
+//       columnDefinition  →  буквален DDL тип: "TEXT", "BIGINT DEFAULT 0" …
+//
+//  Правило: JPA изисква:
+//    1) клас с @Entity
+//    2) поле с @Id
+//    3) protected / public конструктор без аргументи (за reflection)
 // ──────────────────────────────────────────────────────────────────────
 @Entity
 @Table(name = "venue")
@@ -116,6 +153,66 @@ class Venue {
 
 // ──────────────────────────────────────────────────────────────────────
 // REPOSITORY (Spring Data JPA автоматично генерира SQL!)
+//
+// JpaRepository<Entity, IdType> наследява:
+//   CrudRepository              – save, findById, findAll, delete …
+//   PagingAndSortingRepository  – findAll(Pageable)
+//   + flush, saveAndFlush, deleteInBatch …
+//
+// ── DERIVED QUERY METHODS (имена по конвенция) ────────────────────────
+//
+// Spring Data JPA ПАРСИРА името на метода и ГЕНЕРИРА SQL автоматично.
+// Структура: <Глагол> + [By<Условие>] + [OrderBy<Поле><Dir>]
+//
+// Глаголи:
+//   find…By   →  SELECT          | findByCity(String city)
+//   count…By  →  SELECT COUNT(*) | countByCategory(String cat)
+//   exists…By →  EXISTS          | existsByName(String name)
+//   delete…By →  DELETE          | deleteByRating(int r)
+//
+// Условия (картират се към полета на Entity-то):
+//   By<Field>                  →  WHERE field = ?
+//   By<Field>And<Field>        →  WHERE f1 = ? AND f2 = ?
+//   By<Field>Or<Field>         →  WHERE f1 = ? OR f2 = ?
+//   By<Field>Like              →  WHERE field LIKE ?
+//   By<Field>Containing        →  WHERE field LIKE '%?%'
+//   By<Field>StartingWith      →  WHERE field LIKE '?%'
+//   By<Field>EndingWith        →  WHERE field LIKE '%?'
+//   By<Field>GreaterThan       →  WHERE field > ?
+//   By<Field>GreaterThanEqual  →  WHERE field >= ?
+//   By<Field>LessThan          →  WHERE field < ?
+//   By<Field>Between           →  WHERE field BETWEEN ? AND ?
+//   By<Field>IsNull            →  WHERE field IS NULL
+//   By<Field>IsNotNull         →  WHERE field IS NOT NULL
+//   By<Field>In                →  WHERE field IN (?…)
+//   By<Field>Not               →  WHERE field <> ?
+//   By<Field>IgnoreCase        →  WHERE UPPER(field) = UPPER(?)
+//
+// Сортиране (добавя се накрая):
+//   OrderBy<Field>Asc          →  ORDER BY field ASC
+//   OrderBy<Field>Desc         →  ORDER BY field DESC
+//
+// Примери с Venue:
+//   findByCity(String city)
+//     → SELECT * FROM venue WHERE city = ?
+//
+//   findByCategoryOrderByRatingDesc(String category)
+//     → SELECT * FROM venue WHERE category = ? ORDER BY rating DESC
+//
+//   findByCityAndCategory(String city, String cat)
+//     → SELECT * FROM venue WHERE city = ? AND category = ?
+//
+//   findByRatingGreaterThanEqual(int min)
+//     → SELECT * FROM venue WHERE rating >= ?
+//
+//   findByNameContainingIgnoreCase(String q)
+//     → SELECT * FROM venue WHERE UPPER(name) LIKE UPPER('%q%')
+//
+// ── РЪЧНИ ЗАЯВКИ (@Query) ────────────────────────────────────────────
+// Когато логиката е по-сложна, пишем JPQL (обектно-ориентиран SQL):
+//   @Query("SELECT v FROM Venue v WHERE …")  ← JPQL: ползва класове, не таблици
+// Или нативен SQL:
+//   @Query(value = "SELECT * FROM venue …", nativeQuery = true)
 // ──────────────────────────────────────────────────────────────────────
 interface VenueRepository extends JpaRepository<Venue, Long> {
 
