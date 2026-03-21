@@ -32,7 +32,7 @@ $uri    = $_SERVER['REQUEST_URI'];
 $message = '';
 if ($method === 'POST' && isset($_POST['greeting'])) {
     $greeting = htmlspecialchars(trim($_POST['greeting']), ENT_QUOTES, 'UTF-8');
-    $message  = "Изпратихте: „{$greeting}"";
+    $message  = "Изпратихте: '{$greeting}'";
 }
 
 $display = $name !== '' ? $name : 'Свят';

@@ -178,6 +178,150 @@ $redirected     = isset($_GET['redirected']);
     <a href="/redirect">Щракнете за 301 редирект</a>
 </div>
 
+<!-- ── HTTP заявка като байтове ───────────────────────────────────────── -->
+<div class="card">
+    <h2>HTTP/1.1 GET заявка – байтово ниво</h2>
+    <p>
+        Всяка HTTP/1.1 заявка е поредица от <strong>ASCII байтове</strong>.
+        Редовете се разделят с <code>CR LF</code> (<code>0D 0A</code>).
+        Празен ред (<code>0D 0A 0D 0A</code>) бележи края на хедърите.
+    </p>
+
+    <?php
+    /* ── примерна заявка ── */
+    $sample  = "GET /en/docs/web/http/overview.html HTTP/1.1\r\n";
+    $sample .= "Host: example.com\r\n";
+    $sample .= "Accept: text/html,application/xhtml+xml\r\n";
+    $sample .= "Accept-Language: bg\r\n";
+    $sample .= "Connection: keep-alive\r\n";
+    $sample .= "\r\n";
+
+    /* ── текстово представяне с маркирани \r\n ── */
+    $visual = htmlspecialchars($sample, ENT_QUOTES, 'UTF-8');
+    $visual = str_replace("\r\n", '<span style="color:#c0392b">\\r\\n</span>' . "\n", $visual);
+    echo '<p><strong>Текстово (human-readable):</strong></p>';
+    echo '<pre style="line-height:1.7">' . $visual . '</pre>';
+
+    /* ── шестнадесетичен дъмп 16 байта на ред ── */
+    $bytes   = str_split($sample);
+    $rows    = array_chunk($bytes, 16);
+    $hexDump = "OFFSET  БАЙТОВЕ (HEX)                                     ASCII\n";
+    $hexDump .= str_repeat('─', 72) . "\n";
+    $addr    = 0;
+    foreach ($rows as $row) {
+        $hexPart = implode(' ', array_map(fn($b) => strtoupper(bin2hex($b)), $row));
+        $ascPart = implode('', array_map(fn($b) => match(true) {
+            $b === "\r" => '·',
+            $b === "\n" => '↵',
+            ord($b) < 32 || ord($b) > 126 => '.',
+            default => $b
+        }, $row));
+        $hexDump .= sprintf("%04X    %-48s  %s\n", $addr, $hexPart, $ascPart);
+        $addr += count($row);
+    }
+    $hexDump .= str_repeat('─', 72) . "\n";
+    $hexDump .= sprintf("Общо: %d байта\n", strlen($sample));
+    ?>
+    <p><strong>Hexdump:</strong></p>
+    <pre><?= htmlspecialchars($hexDump, ENT_QUOTES, 'UTF-8') ?></pre>
+
+    <p style="margin-top:12px">
+        <strong>Забележка за HTTP/2:</strong> При HTTP/2 заявката вече <em>не е</em> четим текст –
+        тя се разбива на бинарни <strong>рамки (frames)</strong>
+        (<code>HEADERS frame</code> + евентуален <code>DATA frame</code>).
+        Хедърите се компресират с <strong>HPACK</strong>, което значително намалява размера им.
+    </p>
+</div>
+
+<!-- ── Версии на HTTP ─────────────────────────────────────────────────── -->
+<div class="card">
+    <h2>Версии на HTTP протокола</h2>
+    <table>
+        <tr>
+            <th>Характеристика</th>
+            <th>HTTP/1.0<br><small>RFC 1945 · 1996</small></th>
+            <th>HTTP/1.1<br><small>RFC 9112 · 1997/2022</small></th>
+            <th>HTTP/2<br><small>RFC 9113 · 2015/2022</small></th>
+            <th>HTTP/3<br><small>RFC 9114 · 2022</small></th>
+        </tr>
+        <tr>
+            <td><strong>Транспорт</strong></td>
+            <td>TCP</td>
+            <td>TCP</td>
+            <td>TCP + TLS</td>
+            <td><strong>QUIC</strong> (върху UDP)</td>
+        </tr>
+        <tr>
+            <td><strong>Формат</strong></td>
+            <td>Текст</td>
+            <td>Текст</td>
+            <td>Бинарни рамки</td>
+            <td>Бинарни рамки</td>
+        </tr>
+        <tr>
+            <td><strong>Keep-Alive</strong></td>
+            <td>Не (1 заявка/TCP)</td>
+            <td>Да (по подразбиране)</td>
+            <td>Да</td>
+            <td>Да</td>
+        </tr>
+        <tr>
+            <td><strong>Мултиплексиране</strong></td>
+            <td>Не</td>
+            <td>Pipelining (на практика рядко)</td>
+            <td><strong>Да</strong> – много потоци в 1 TCP</td>
+            <td><strong>Да</strong> – много потоци в 1 QUIC</td>
+        </tr>
+        <tr>
+            <td><strong>Head-of-line блокиране</strong></td>
+            <td>Да</td>
+            <td>Да (на ниво приложение)</td>
+            <td>Да (на ниво TCP)</td>
+            <td><strong>Не</strong> – QUIC обработва потоците независимо</td>
+        </tr>
+        <tr>
+            <td><strong>Компресия на хедъри</strong></td>
+            <td>Не</td>
+            <td>Не</td>
+            <td><strong>HPACK</strong></td>
+            <td><strong>QPACK</strong></td>
+        </tr>
+        <tr>
+            <td><strong>Server Push</strong></td>
+            <td>Не</td>
+            <td>Не</td>
+            <td>Да (RFC; браузърите го депрекираха)</td>
+            <td>Ограничено</td>
+        </tr>
+        <tr>
+            <td><strong>TLS задължителен?</strong></td>
+            <td>Не</td>
+            <td>Не</td>
+            <td>De-facto да (браузърите изискват)</td>
+            <td><strong>Да</strong> – вграден в QUIC</td>
+        </tr>
+        <tr>
+            <td><strong>Типично използване днес</strong></td>
+            <td>Легаси / curl скриптове</td>
+            <td>Широко (~35 % трафик)</td>
+            <td>Мнозинство сайтове (~65 %)</td>
+            <td>Нараства (~30 % и повече)</td>
+        </tr>
+    </table>
+
+    <h3 style="margin-top:20px">Ключови разлики накратко</h3>
+    <ul>
+        <li><strong>1.0 → 1.1:</strong> Keep-Alive, chunked transfer, виртуален хостинг (<code>Host</code> хедър задължителен), кеш контрол с <code>ETag</code>/<code>Cache-Control</code>.</li>
+        <li><strong>1.1 → 2:</strong> Бинарен протокол, мултиплексиране (много заявки в 1 TCP връзка без чакане), HPACK компресия на хедъри, приоритизация на потоци.</li>
+        <li><strong>2 → 3:</strong> Смяна на транспорта от TCP на <strong>QUIC</strong> (UDP-базиран) – решава TCP head-of-line блокирането, по-бързо установяване на връзката (0-RTT/1-RTT), вградена TLS 1.3.</li>
+    </ul>
+
+    <p>
+        <strong>Проверете версията в браузъра:</strong> DevTools → Network → протокол колоната показва
+        <code>h2</code> (HTTP/2) или <code>h3</code> (HTTP/3) за съвременни сайтове.
+    </p>
+</div>
+
 <!-- ── Fetch примери ──────────────────────────────────────────────────── -->
 <div class="card">
     <h2>Изпращане на POST заявки (Fetch API)</h2>
