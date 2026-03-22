@@ -16,7 +16,11 @@ declare(strict_types=1);
  *   user  / user123   (роля: user)
  *
  * curl заявки (ръчно тестване):
- *   # Запис на cookie jar за session cookie
+ *
+ *   # --- bash / Git Bash ---
+ *   # Създаваме временен файл (cookie jar), в който curl ще съхранява
+ *   # session cookie-то между отделните заявки. Без него всяка заявка
+ *   # би изглеждала като нова, неавтентикирана сесия.
  *   COOKIEJAR=$(mktemp /tmp/cookies-XXXX.txt)
  *
  *   # Login form
@@ -42,8 +46,43 @@ declare(strict_types=1);
  *
  *   # Admin страница – отказан достъп (потребителят е с роля user)
  *   curl -b "$COOKIEJAR" http://localhost:8000/admin
+ *
+ *   # --- PowerShell ---
+ *   # Запис на cookie jar за session cookie
+ *   $COOKIEJAR = "$env:TEMP\cookies.txt"
+ *
+ *   # Login form
+ *   curl.exe http://localhost:8000/login
+ *
+ *   # Вход като admin
+ *   curl.exe -c $COOKIEJAR -X POST http://localhost:8000/login `
+ *            -d "username=admin&password=admin123"
+ *
+ *   # Dashboard (изисква автентикация)
+ *   curl.exe -b $COOKIEJAR http://localhost:8000/dashboard
+ *
+ *   # Admin страница (изисква роля admin)
+ *   curl.exe -b $COOKIEJAR http://localhost:8000/admin
+ *
+ *   # Изход
+ *   curl.exe -b $COOKIEJAR -c $COOKIEJAR `
+ *            -X POST http://localhost:8000/logout
+ *
+ *   # Вход като обикновен user
+ *   curl.exe -c $COOKIEJAR -X POST http://localhost:8000/login `
+ *            -d "username=user&password=user123"
+ *
+ *   # Admin страница – отказан достъп (потребителят е с роля user)
+ *   curl.exe -b $COOKIEJAR http://localhost:8000/admin
  */
 
+// Конфигурираме session cookie-то преди стартиране на сесията:
+//   httponly => true  – cookie-то е недостъпно за JavaScript (window.document.cookie),
+//                       което предпазва от XSS атаки.
+//   samesite => 'Lax' – браузърът изпраща cookie-то само при навигация от същия сайт
+//                       (или директен достъп), но НЕ при cross-site POST заявki,
+//                       което намалява риска от CSRF атаки.
+// Трябва да се извика ПРЕДИ session_start(), защото след него хедърите вече са изпратени.
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
 session_start();
 
@@ -109,9 +148,18 @@ $users = [
 //
 //  session_regenerate_id(true) – ВАЖНО! Пренамерва session ID след login,
 //  за да предотврати Session Fixation атака:
-//    атакуващият знае session ID (напр. от URL) преди вход
-//    → след входа има автентицирана сесия със знаетия session ID
-//    → решение: след проверка = смяна на ID (старият се изтрива)
+//
+//    Стъпки на атаката:
+//      1. Нападателят отваря сайта и получава валиден (неавтентикиран) session ID
+//         напр. PHPSESSID=abc123
+//      2. Изпраща на жертвата линк с този ID:
+//         https://example.com/login?PHPSESSID=abc123
+//      3. Жертвата влиза успешно – сървърът автентикира същата сесия abc123
+//      4. Нападателят вече има автентицирана сесия с известен ID
+//
+//    Решение: след успешен login генерираме НОВ session ID и изтриваме стария:
+//      session_regenerate_id(delete_old_session: true)
+//      → нападателят знае само abc123, но тя вече не съществува
 //
 //  session_set_cookie_params(['httponly'=>true, 'samesite'=>'Lax'])
 //    httponly: бразърът блокира JavaScript достъпа до cookie
@@ -177,7 +225,13 @@ function requireRole(string $role): void
 // ══════════════════════════════════════════════════════════════════════
 
 $path   = strtok($_SERVER['REQUEST_URI'], '?');
+$path   = ($path !== '/' ? rtrim($path, '/') : $path); // /admin/ → /admin
 $method = $_SERVER['REQUEST_METHOD'];
+
+// Flash съобщение – еднократно известие (напр. "Грешна парола"), което:
+//   1. се записва в $_SESSION['flash'] преди пренасочване (header + exit)
+//   2. се прочита и ИЗТРИВА при следващата заявка (Post/Redirect/Get pattern)
+// Изтриването с unset() гарантира, че съобщението се показва само веднъж.
 $flash  = null;
 if (isset($_SESSION['flash'])) { $flash = $_SESSION['flash']; unset($_SESSION['flash']); }
 
