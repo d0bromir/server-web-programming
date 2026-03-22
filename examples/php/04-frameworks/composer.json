@@ -8,6 +8,6 @@
         }
     },
     "scripts": {
-        "test": "phpunit --testdox"
+        "test": "phpunit --testdox --do-not-cache-result tests/"
     }
 }

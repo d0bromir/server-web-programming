@@ -63,7 +63,7 @@ class AppTest extends TestCase
 
     public function testSearchReturns200(): void
     {
-        $r = $this->get('/?search=книга');
+        $r = $this->get('/?search=' . rawurlencode('книга'));
         $this->assertSame(200, $r['status']);
     }
 

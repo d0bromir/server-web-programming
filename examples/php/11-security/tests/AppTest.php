@@ -34,16 +34,50 @@ class AppTest extends TestCase
         }
     }
 
-    private function get(string $path): array
+    private function get(string $path, string $cookie = ''): array
     {
+        $headers = 'Accept: text/html';
+        if ($cookie !== '') {
+            $headers .= "\r\nCookie: PHPSESSID={$cookie}";
+        }
         $ctx = stream_context_create(['http' => [
             'method'          => 'GET',
+            'header'          => $headers,
             'ignore_errors'   => true,
             'follow_location' => 0,
         ]]);
         $body   = file_get_contents(self::$base . $path, false, $ctx);
         $status = (int) substr($http_response_header[0], 9, 3);
         return ['status' => $status, 'body' => (string) $body, 'headers' => $http_response_header];
+    }
+
+    private function post(string $path, array $data, string $cookie = ''): array
+    {
+        $headers = 'Content-Type: application/x-www-form-urlencoded';
+        if ($cookie !== '') {
+            $headers .= "\r\nCookie: PHPSESSID={$cookie}";
+        }
+        $ctx = stream_context_create(['http' => [
+            'method'          => 'POST',
+            'header'          => $headers,
+            'content'         => http_build_query($data),
+            'ignore_errors'   => true,
+            'follow_location' => 0,
+        ]]);
+        $body   = file_get_contents(self::$base . $path, false, $ctx);
+        $status = (int) substr($http_response_header[0], 9, 3);
+        return ['status' => $status, 'body' => (string) $body, 'headers' => $http_response_header];
+    }
+
+    private function extractSessionCookie(array $headers): string
+    {
+        foreach ($headers as $h) {
+            if (stripos($h, 'Set-Cookie:') === 0 && stripos($h, 'PHPSESSID') !== false) {
+                preg_match('/PHPSESSID=([^;]+)/', $h, $m);
+                return $m[1] ?? '';
+            }
+        }
+        return '';
     }
 
     private function findHeader(array $headers, string $name): ?string
@@ -102,5 +136,78 @@ class AppTest extends TestCase
         $r = $this->get('/');
         // Форматът на hidden field в HTML
         $this->assertStringContainsString('csrf_token', $r['body']);
+    }
+
+    public function testCsrfTestEndpointReturnsJson(): void
+    {
+        // Взимаме csrf_token от начална страница
+        $init  = $this->get('/');
+        $sessId = $this->extractSessionCookie($init['headers']);
+
+        preg_match('/name="csrf_token"\s+value="([^"]+)"/', $init['body'], $m);
+        $token = $m[1] ?? '';
+
+        if ($token === '' || $sessId === '') {
+            $this->markTestSkipped('Не можа да се извлече csrf_token или сесия.');
+        }
+
+        $r = $this->post('/?action=csrf-test', ['csrf_token' => $token], $sessId);
+        $this->assertSame(200, $r['status']);
+        $json = json_decode($r['body'], true);
+        $this->assertArrayHasKey('ok', $json, 'CSRF test endpoint трябва да върне JSON с ключ "ok".');
+        $this->assertTrue($json['ok'], 'Валиден CSRF токен трябва да върне ok=true.');
+    }
+
+    public function testCsrfTestWithWrongTokenReturnsError(): void
+    {
+        $init   = $this->get('/');
+        $sessId = $this->extractSessionCookie($init['headers']);
+
+        $r    = $this->post('/?action=csrf-test', ['csrf_token' => 'wrong-token'], $sessId);
+        $json = json_decode($r['body'], true);
+        $this->assertFalse($json['ok'] ?? true, 'Невалиден токен трябва да върне ok=false.');
+    }
+
+    public function testNewNonceEndpointReturnsNonce(): void
+    {
+        $r    = $this->get('/?action=new-nonce');
+        $this->assertSame(200, $r['status']);
+        $json = json_decode($r['body'], true);
+        $this->assertArrayHasKey('nonce', $json, 'new-nonce endpoint трябва да върне JSON с ключ "nonce".');
+    }
+
+    public function testSqlDemoEndpointReturnsJson(): void
+    {
+        $r    = $this->get('/?action=sql-demo&input=Alice');
+        $this->assertContains($r['status'], [200, 501]);
+        $json = json_decode($r['body'], true);
+        $this->assertIsArray($json, 'sql-demo endpoint трябва да върне JSON.');
+    }
+
+    public function testCspToggleDisablesHeader(): void
+    {
+        // Нова сесия с CSP по подразбиране включен
+        $init   = $this->get('/');
+        $sessId = $this->extractSessionCookie($init['headers']);
+
+        if ($sessId === '') {
+            $this->markTestSkipped('Не може да се извлече сесионен cookie.');
+        }
+
+        $cspBefore = $this->findHeader($init['headers'], 'Content-Security-Policy');
+        $this->assertNotNull($cspBefore, 'CSP по подразбиране трябва да е включен.');
+
+        // Изключване на CSP
+        $toggle = $this->get('/?action=toggle-csp', $sessId);
+        // toggle-csp редиректва към /
+        $this->assertSame(302, $toggle['status']);
+
+        // Нов GET без редирект
+        $afterToggle = $this->get('/', $sessId);
+        $cspAfter = $this->findHeader($afterToggle['headers'], 'Content-Security-Policy');
+        $this->assertNull($cspAfter, 'След изключване CSP хедърът не трябва да присъства.');
+
+        // Включване обратно
+        $this->get('/?action=toggle-csp', $sessId);
     }
 }

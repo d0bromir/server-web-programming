@@ -1,3 +1,13 @@
+# Maven build output
+target/
+
+# PHP dependencies and lock files
+vendor/
+composer.lock
+
+# PHP test DB (runtime-generated)
+examples/php/10-rest-api/items_db.json
+
 # Compiled class file
 *.class
 

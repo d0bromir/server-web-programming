@@ -25,6 +25,15 @@ class AppTest extends TestCase
         $desc    = [['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']];
         self::$serverProcess = proc_open($cmd, $desc, $pipes);
         usleep(400_000);
+
+        // Нулиране на базата данни преди тестовете за стабилни резултати
+        $ctx = stream_context_create(['http' => [
+            'method'        => 'POST',
+            'header'        => 'Content-Type: application/json' . "\r\n" . 'Authorization: Bearer ' . self::TOKEN,
+            'content'       => '{}',
+            'ignore_errors' => true,
+        ]]);
+        file_get_contents('http://127.0.0.1:18010/api/reset', false, $ctx);
     }
 
     public static function tearDownAfterClass(): void
@@ -136,5 +145,33 @@ class AppTest extends TestCase
     {
         $r = $this->request('DELETE', '/api/items/1', null, false);
         $this->assertSame(401, $r['status']);
+    }
+
+    public function testResetEndpointRestoresDefaultItems(): void
+    {
+        $r = $this->request('POST', '/api/reset');
+        $this->assertSame(200, $r['status']);
+        $this->assertArrayHasKey('message', $r['json'] ?? []);
+    }
+
+    public function testPerPageParameterLimitsResults(): void
+    {
+        // Нулиране за 3 известни записа
+        $this->request('POST', '/api/reset');
+
+        $r = $this->request('GET', '/api/items?per_page=1');
+        $this->assertSame(200, $r['status']);
+        $data = $r['json']['data'] ?? [];
+        $this->assertCount(1, $data, 'per_page=1 трябва да върне точно 1 запис.');
+    }
+
+    public function testPaginationMetaIsPresent(): void
+    {
+        $r    = $this->request('GET', '/api/items');
+        $meta = $r['json']['meta'] ?? null;
+        $this->assertNotNull($meta, 'Отговорът трябва да съдържа meta обект с пагинация.');
+        $this->assertArrayHasKey('total',    $meta);
+        $this->assertArrayHasKey('page',     $meta);
+        $this->assertArrayHasKey('per_page', $meta);
     }
 }

@@ -76,7 +76,7 @@ class AppTest extends TestCase
 
     public function testGetWithNameParameterShowsGreeting(): void
     {
-        $r = $this->get('/?name=Студент');
+        $r = $this->get('/?name=' . rawurlencode('Студент'));
         $this->assertSame(200, $r['status']);
         $this->assertStringContainsString('Студент', $r['body']);
     }
